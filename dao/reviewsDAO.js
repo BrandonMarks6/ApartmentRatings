@@ -173,4 +173,17 @@ export default class ReviewsDAO {
         }
         }
 
+    static async getAveragePrice(apartmentId) {
+        try {
+            const cursor = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+
+            const averagePrice = cursor.averagePrice
+            //returns only the array of reviews stored inside of the currnet apartment object
+            return averagePrice
+        } catch (e) {
+            console.error(`Unable to get review: ${e}`)
+            return { error: e }
+        }
+    }
+
 }

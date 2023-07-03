@@ -27,6 +27,7 @@ router.route("/apartment/delete/:id").delete(ReviewsCtrl.apiDeleteApartment)
 //will delete all apartments(used for testing)
 router.route("/apartment/delete").delete(ReviewsCtrl.apiDeleteAllApartments)
 
+router.route("/apartment/average-price/:id").get(ReviewsCtrl.apiGetAveragePrice)
 
 
 export default router;

@@ -123,6 +123,23 @@ export default class ReviewsController {
     }
   }
 
+  static async apiGetAveragePrice(req, res, next) {
+    try {
+      console.log("Looking for avg price")
+      let apartmentId = req.params.id || {}
+      let review = await ReviewsDAO.getAveragePrice(apartmentId)
+
+      if (!review) {
+        res.status(404).json({ error: "Not found" })//if there is no apartments
+        return
+      }
+      res.json(review)
+    } catch (e) {
+      console.log(`api, ${e}`)
+      res.status(500).json({ error: e.message })
+    }
+  }
+
 
 
 }
