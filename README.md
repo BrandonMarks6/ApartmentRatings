@@ -54,5 +54,10 @@ This program allows users to store and retirieve data that would be used in rela
 ### `DELETE /apartment/delete`
 * deletes all apartments currently stored in the database  
   
+  Body{ }
+
+### `GET /apartment/average-Price/:id`
+* returns the average price for the specified apartment
+  
   Body{ }  
 
