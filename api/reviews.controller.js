@@ -42,6 +42,20 @@ export default class ReviewsController {
     }
   }
 
+  static async apiUpdateReview(req, res, next) {
+    try {
+      const apartmentId = req.body.apartmentId
+      const reviewIndex = req.params.id
+      const newReview = req.body.review
+      const newUser = req.body.user
+
+      const reviewResponse = await ReviewsDAO.updateReview(reviewIndex, apartmentId, newReview, newUser)
+      res.json({ status: "success" })
+    } catch (e) {
+      res.status(500).json({ error: e.message })
+    }
+  }
+
 
   static async apiGetReviews(req, res, next) {
     try {
@@ -125,7 +139,6 @@ export default class ReviewsController {
 
   static async apiGetAveragePrice(req, res, next) {
     try {
-      console.log("Looking for avg price")
       let apartmentId = req.params.id || {}
       let review = await ReviewsDAO.getAveragePrice(apartmentId)
 
@@ -139,6 +152,26 @@ export default class ReviewsController {
       res.status(500).json({ error: e.message })
     }
   }
+
+  static async apiGetReview(req, res, next) {
+    try {
+      const apartmentId = req.body.apartmentId
+      const reviewId = req.params.id
+
+      const reviewResponse = await ReviewsDAO.getReview(reviewId, apartmentId)
+      
+      if (!reviewResponse) {
+        res.status(404).json({ error: "Not found" })//if there is no review
+        return
+      }
+      res.json(reviewResponse)//if there is review
+    } catch (e) {// will catch if request failed
+      console.log(`api, ${e}`)
+    }
+  }
+
+
+  
 
 
 

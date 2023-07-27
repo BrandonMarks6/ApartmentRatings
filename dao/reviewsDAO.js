@@ -186,4 +186,47 @@ export default class ReviewsDAO {
         }
     }
 
+    static async updateReview(reviewIndex, apartmentId, newReview, newUser) {
+        try {
+            // Retrieve the apartment document and handle existing reviewsArray
+            const currentApartment = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+            //grabs current array of reviews
+            let existingReviews = currentApartment.reviewsArray;
+
+            let currentReview = existingReviews[Number(reviewIndex)]
+
+            //cahnges neccessary values
+            currentReview.user = newUser
+            currentReview.review = newReview
+
+            //updates array with new value
+            existingReviews[Number(reviewIndex)] = currentReview
+
+
+            //replaces old array with edited one
+            const updateResponse = await reviews.findOneAndUpdate(
+                { _id: new ObjectId(apartmentId) },
+                { $set: { reviewsArray: existingReviews} },
+                { returnOriginal: false }
+            );
+    
+            return updateResponse
+        } catch (e) {
+            console.error(`Unable to delete review: ${e}`)
+            return { error: e }
+        }
+        }
+
+        static async getReview(reviewIndex, apartmentId) {
+            try {
+                const apartment = await reviews.findOne({ _id: new ObjectId(apartmentId)});
+                const existingReviews = apartment.reviewsArray
+                let currentReview = existingReviews[Number(reviewIndex)]
+                return currentReview
+            } catch (e) {
+                console.error(`Unable to delete review: ${e}`)
+                return { error: e }
+            }
+            }
+
 }
