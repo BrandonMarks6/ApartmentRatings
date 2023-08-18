@@ -5,6 +5,7 @@
 
 #personal
 .env
+.vscode
 
 
 # User-specific files

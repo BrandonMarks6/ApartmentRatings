@@ -1,16 +1,17 @@
-import { ObjectId } from 'mongodb';
+const { ObjectId } = require('mongodb');
+const Logger = require('../LogFiles/logger.js');
 
-let reviews;
+let db;
 
-export default class ReviewsDAO {
+class apiDAO {
   static async injectDB(conn) { // gets a connection
-    if (reviews) { // stops if already connected
+    if (db) { // stops if already connected
       return;
     }
     try {
-      reviews = await conn.db('reviews').collection('reviews');// gets the entire review databse then gets the collectcion of reviews
+      db = await conn.db('reviews').collection('reviews');// gets the entire review databse then gets the collectcion of reviews
     } catch (e) {
-      console.error(`Unable to establish collection handles in userDAO: ${e}`);
+      Logger.error(`Unable to establish collection handles in userDAO: ${e}`);
     }
   }
 
@@ -24,7 +25,7 @@ export default class ReviewsDAO {
       };
 
       // Retrieve the apartment document and handle existing reviewsArray
-      const currentApartment = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+      const currentApartment = await db.findOne({ _id: new ObjectId(apartmentId) });
       const existingReviews = currentApartment.reviewsArray;
 
       // Create the new reviews array with the existing reviews and the new review
@@ -39,7 +40,7 @@ export default class ReviewsDAO {
       const newAveragePrice = oldAveragePrice + ((price - oldAveragePrice) / newTotalReviews);
 
       // Update the apartment document with the new reviews array
-      const updateResponse = await reviews.findOneAndUpdate(
+      const updateResponse = await db.findOneAndUpdate(
         { _id: new ObjectId(apartmentId) },
         {
           $set: {
@@ -53,15 +54,15 @@ export default class ReviewsDAO {
 
       return updateResponse;
     } catch (e) {
-      console.error(`Unable to post review: ${e}`);
+      Logger.error(`Unable to post review: ${e}`);
       return { error: e };
     }
   }
 
-  static async deleteReview(reviewId, apartmentId) {
+  static async deleteReview(reviewIndex, apartmentId) {
     try {
       // Retrieve the apartment document and handle existing reviewsArray
-      const currentApartment = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+      const currentApartment = await db.findOne({ _id: new ObjectId(apartmentId) });
 
       // grabs current array of reviews
       const existingReviews = currentApartment.reviewsArray;
@@ -73,7 +74,7 @@ export default class ReviewsDAO {
 
       // will add all but removed review to the new array
       for (let traversalIndex = 0; traversalIndex < existingReviews.length; traversalIndex++) {
-        if (traversalIndex != reviewId) {
+        if (traversalIndex !== Number(reviewIndex)) {
           newReviews[insertionIndex] = existingReviews[traversalIndex];
           insertionIndex++;
         } else {
@@ -88,45 +89,52 @@ export default class ReviewsDAO {
       // removes the value of the price from the total price
       const oldAveragePrice = currentApartment.averagePrice;
       let newAveragePrice = 0;
-      if (newTotalReviews == 0) {
+      if (newTotalReviews === 0) {
         newAveragePrice = -1;
       } else {
-        newAveragePrice = (oldAveragePrice * oldTotalReviews - removedReview.price) / (oldTotalReviews - 1);
+        newAveragePrice = (
+          (oldAveragePrice * oldTotalReviews - removedReview.price)
+        / (oldTotalReviews - 1));
       }
 
       // updates all necessary values
-      const updateResponse = await reviews.findOneAndUpdate(
+      const updateResponse = await db.findOneAndUpdate(
         { _id: new ObjectId(apartmentId) },
-        { $set: { reviewsArray: newReviews, totalReviews: newTotalReviews, averagePrice: newAveragePrice } },
+        {
+          $set: {
+            reviewsArray: newReviews,
+            totalReviews: newTotalReviews,
+            averagePrice: newAveragePrice,
+          },
+        },
         { returnOriginal: false },
       );
 
       return updateResponse;
     } catch (e) {
-      console.error(`Unable to delete review: ${e}`);
+      Logger.error(`Unable to delete review: ${e}`);
       return { error: e };
     }
   }
 
   static async getReviewsByApartmentId(apartmentId) {
     try {
-      const cursor = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+      const apartment = await db.findOne({ _id: new ObjectId(apartmentId) });
 
       // returns only the array of reviews stored inside of the currnet apartment object
-      return cursor.reviewsArray;
+      return apartment.reviewsArray;
     } catch (e) {
-      console.error(`Unable to get review: ${e}`);
+      Logger.error(`Unable to get review: ${e}`);
       return { error: e };
     }
   }
 
-  // possibly done
   static async getAllApartments() {
     try {
-      const cursor = await reviews.find({});
-      return cursor.toArray();
+      const apartment = await db.find({});
+      return apartment.toArray();
     } catch (e) {
-      console.error(`Unable to get review: ${e}`);
+      Logger.error(`Unable to get review: ${e}`);
 
       return { error: e };
     }
@@ -135,101 +143,122 @@ export default class ReviewsDAO {
   static async addApartment(
     name,
     description,
-    posterPath,
     reviewsArray,
     averagePrice,
     totalReviews,
-    averageRating,
   ) {
     try {
-      const reviewDoc = {
+      const apartmentDoc = {
         name,
         description,
-        posterPath,
         reviewsArray,
         averagePrice,
         totalReviews,
-        averageRating,
       };
-      return await reviews.insertOne(reviewDoc);
+      return await db.insertOne(apartmentDoc);
     } catch (e) {
-      console.error(`Unable to post review: ${e}`);
+      Logger.error(`Unable to post review: ${e}`);
       return { error: e };
     }
   }
 
-  static async deleteApartment(reviewId, apartmentId) {
+  static async deleteApartment(apartmentId) {
     try {
-      const deleteResponse = await reviews.deleteOne({ _id: new ObjectId(reviewId) });
+      const deleteResponse = await db.deleteOne({ _id: new ObjectId(apartmentId) });
       return deleteResponse;
     } catch (e) {
-      console.error(`Unable to delete review: ${e}`);
+      Logger.error(`Unable to delete review: ${e}`);
       return { error: e };
     }
   }
 
   static async deleteAllApartments() {
     try {
-      const deleteResponse = await reviews.deleteMany({ });
+      const deleteResponse = await db.deleteMany({ });
       return deleteResponse;
     } catch (e) {
-      console.error(`Unable to delete review: ${e}`);
+      Logger.error(`Unable to delete review: ${e}`);
       return { error: e };
     }
   }
 
   static async getAveragePrice(apartmentId) {
     try {
-      const cursor = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+      const price = await db.findOne({ _id: new ObjectId(apartmentId) });
 
-      const { averagePrice } = cursor;
+      const { averagePrice } = price;
       // returns only the array of reviews stored inside of the currnet apartment object
       return averagePrice;
     } catch (e) {
-      console.error(`Unable to get review: ${e}`);
+      Logger.error(`Unable to get review: ${e}`);
       return { error: e };
     }
   }
 
-  static async updateReview(reviewIndex, apartmentId, newReview, newUser) {
+  static async updateReview(reviewIndex, apartmentId, newReview, newUser, newPrice) {
     try {
       // Retrieve the apartment document and handle existing reviewsArray
-      const currentApartment = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+      const currentApartment = await db.findOne({ _id: new ObjectId(apartmentId) });
       // grabs current array of reviews
       const existingReviews = currentApartment.reviewsArray;
 
       const currentReview = existingReviews[Number(reviewIndex)];
 
+      // removes old price form average and adds new price to average
+      const { totalReviews } = currentApartment;
+
+      let newAveragePrice = 0;
+      if (totalReviews == 1) {
+        newAveragePrice = newPrice;
+      } else {
+        const initialAveragePrice = currentApartment.averagePrice;
+        const removeOneAveragePrice = (
+          (initialAveragePrice * totalReviews - currentReview.price)
+        / (totalReviews - 1));
+
+        newAveragePrice = (
+          removeOneAveragePrice + ((newPrice - removeOneAveragePrice)
+        / totalReviews + 1)) - 1;
+      }
+
       // cahnges neccessary values
       currentReview.user = newUser;
       currentReview.review = newReview;
+      currentReview.price = newPrice;
 
       // updates array with new value
       existingReviews[Number(reviewIndex)] = currentReview;
 
       // replaces old array with edited one
-      const updateResponse = await reviews.findOneAndUpdate(
+      const updateResponse = await db.findOneAndUpdate(
         { _id: new ObjectId(apartmentId) },
-        { $set: { reviewsArray: existingReviews } },
+        {
+          $set: {
+            reviewsArray: existingReviews,
+            averagePrice: newAveragePrice,
+          },
+        },
         { returnOriginal: false },
       );
 
       return updateResponse;
     } catch (e) {
-      console.error(`Unable to delete review: ${e}`);
+      Logger.error(`Unable to update review: ${e}`);
       return { error: e };
     }
   }
 
   static async getReview(reviewIndex, apartmentId) {
     try {
-      const apartment = await reviews.findOne({ _id: new ObjectId(apartmentId) });
+      const apartment = await db.findOne({ _id: new ObjectId(apartmentId) });
       const existingReviews = apartment.reviewsArray;
       const currentReview = existingReviews[Number(reviewIndex)];
       return currentReview;
     } catch (e) {
-      console.error(`Unable to delete review: ${e}`);
+      Logger.error(`Unable to delete review: ${e}`);
       return { error: e };
     }
   }
 }
+
+module.exports = apiDAO;
