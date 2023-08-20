@@ -6,8 +6,6 @@ module.exports = {
     version: '1.0.0', // version number
     contact: {
       name: 'Brandon Marks', // your name
-      email: 'brandonmarkssc@gmail.com', // your email
-      url: 'brandonmarks.dev', // your website
     },
   },
 };
